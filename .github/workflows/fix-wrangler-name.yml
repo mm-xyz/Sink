@@ -1,0 +1,39 @@
+name: Fix wrangler name after upstream sync
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - wrangler.jsonc
+
+jobs:
+  fix-wrangler-name:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check and fix wrangler.jsonc name
+        run: |
+          python3 -c "
+          import re, subprocess, sys
+
+          content = open('wrangler.jsonc').read()
+          fixed = re.sub(r'(\"name\":\s*)\"sink\"', r'\1\"sink-short-url\"', content, count=1)
+
+          if fixed == content:
+              print('wrangler.jsonc name is correct, no fix needed.')
+              sys.exit(0)
+
+          open('wrangler.jsonc', 'w').write(fixed)
+          print('Fixed wrangler.jsonc name: sink -> sink-short-url')
+
+          subprocess.run(['git', 'config', 'user.name', 'github-actions[bot]'], check=True)
+          subprocess.run(['git', 'config', 'user.email', 'github-actions[bot]@users.noreply.github.com'], check=True)
+          subprocess.run(['git', 'add', 'wrangler.jsonc'], check=True)
+          subprocess.run(['git', 'commit', '-m', 'fix: restore worker name to sink-short-url after upstream sync'], check=True)
+          subprocess.run(['git', 'push'], check=True)
+          "
