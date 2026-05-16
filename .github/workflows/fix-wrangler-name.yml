@@ -1,14 +1,14 @@
-name: Fix wrangler name after upstream sync
+name: Fix wrangler config after upstream sync
 
 on:
   push:
     branches:
-      - main
+      - master
     paths:
       - wrangler.jsonc
 
 jobs:
-  fix-wrangler-name:
+  fix-wrangler-config:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     permissions:
@@ -16,24 +16,30 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check and fix wrangler.jsonc name
+      - name: Check and fix wrangler.jsonc
         run: |
           python3 -c "
           import re, subprocess, sys
 
           content = open('wrangler.jsonc').read()
-          fixed = re.sub(r'(\"name\":\s*)\"sink\"', r'\1\"sink-short-url\"', content, count=1)
+          fixed = content
+
+          # Fix worker name
+          fixed = re.sub(r'(\"name\":\s*)\"sink\"', r'\1\"sink-short-url\"', fixed, count=1)
+
+          # Fix KV namespace ID (upstream placeholder → correct account ID)
+          fixed = fixed.replace('ef93d42dc4b34969bab404d2e80f8dd3', '72b60049e64b4169960e4ebac15108f8')
 
           if fixed == content:
-              print('wrangler.jsonc name is correct, no fix needed.')
+              print('wrangler.jsonc is correct, no fix needed.')
               sys.exit(0)
 
           open('wrangler.jsonc', 'w').write(fixed)
-          print('Fixed wrangler.jsonc name: sink -> sink-short-url')
+          print('Fixed wrangler.jsonc after upstream sync')
 
           subprocess.run(['git', 'config', 'user.name', 'github-actions[bot]'], check=True)
           subprocess.run(['git', 'config', 'user.email', 'github-actions[bot]@users.noreply.github.com'], check=True)
           subprocess.run(['git', 'add', 'wrangler.jsonc'], check=True)
-          subprocess.run(['git', 'commit', '-m', 'fix: restore worker name to sink-short-url after upstream sync'], check=True)
+          subprocess.run(['git', 'commit', '-m', 'fix: restore wrangler.jsonc fork config after upstream sync'], check=True)
           subprocess.run(['git', 'push'], check=True)
           "
