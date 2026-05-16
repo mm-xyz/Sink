@@ -1,0 +1,2 @@
+# Protect fork-specific config from upstream sync
+wrangler.jsonc merge=ours
